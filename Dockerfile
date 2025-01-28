@@ -23,10 +23,10 @@ COPY packages ./packages
 COPY scripts ./scripts
 COPY characters ./characters
 
-# Install dependencies and build the project
-RUN pnpm install \
-    && pnpm build-docker \
-    && pnpm prune --prod
+# Build the project
+RUN pnpm install --no-frozen-lockfile && \
+    pnpm build-docker && \
+    pnpm prune --prod
 
 # Create a new stage for the final image
 FROM node:23.3.0-slim
@@ -42,6 +42,7 @@ WORKDIR /app
 
 # Copy built artifacts and production dependencies from the builder stage
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
 COPY --from=builder /app/turbo.json ./
@@ -51,5 +52,16 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
-# Set the command to run the application
+# Create required directories with proper permissions
+RUN mkdir -p /app/agent/data /app/data && \
+    chown -R node:node /app
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV TURBO_TELEMETRY_DISABLED=1
+
+# Switch to non-root user
+USER node
+
+# Start the application
 CMD ["pnpm", "start"]
