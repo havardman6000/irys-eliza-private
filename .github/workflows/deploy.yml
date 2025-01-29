@@ -22,17 +22,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v2'
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}'
-          audience: 'https://github.com/havardman6000'
-          token_format: 'access_token'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify Authentication
+        run: gcloud auth list
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '23.3.0'
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9.4.0
+
+      - name: Install Dependencies
+        run: |
+          pnpm install
+          pnpm build
 
       - name: Deploy to Cloud Run
         id: deploy
