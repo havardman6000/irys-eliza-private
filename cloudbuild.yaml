@@ -2,23 +2,10 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Install pnpm globally with corepack
-  - name: node:23.3.0
-    entrypoint: corepack
-    args: ['enable']
-
-  - name: node:23.3.0
-    entrypoint: corepack
-    args: ['prepare', 'pnpm@9.4.0', '--activate']
-
   # Install dependencies
   - name: node:23.3.0
     entrypoint: npm
-    args: ['install', '-g', 'pnpm@9.4.0']
-
-  - name: node:23.3.0
-    entrypoint: /usr/local/bin/pnpm
-    args: ['install', '--no-frozen-lockfile']
+    args: ['install']
 
   # Build the container
   - name: 'gcr.io/cloud-builders/docker'
