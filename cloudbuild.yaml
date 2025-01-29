@@ -2,25 +2,23 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Install pnpm
+  # Install pnpm globally with corepack
+  - name: node:23.3.0
+    entrypoint: corepack
+    args: ['enable']
+
+  - name: node:23.3.0
+    entrypoint: corepack
+    args: ['prepare', 'pnpm@9.4.0', '--activate']
+
+  # Install dependencies
   - name: node:23.3.0
     entrypoint: npm
     args: ['install', '-g', 'pnpm@9.4.0']
 
-  # Install dependencies
   - name: node:23.3.0
-    entrypoint: pnpm
-    args:
-      - install
-      - --frozen-lockfile=false
-      - --shamefully-hoist
-    env:
-      - 'NODE_ENV=development'
-
-  # Build the application
-  - name: node:23.3.0
-    entrypoint: pnpm
-    args: ['run', 'build']
+    entrypoint: /usr/local/bin/pnpm
+    args: ['install', '--no-frozen-lockfile']
 
   # Build the container
   - name: 'gcr.io/cloud-builders/docker'
@@ -47,5 +45,3 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/irys-eliza'
-
-timeout: '1800s'
