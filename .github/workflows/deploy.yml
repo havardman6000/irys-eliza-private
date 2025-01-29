@@ -15,7 +15,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -30,9 +29,12 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: 9.4.0
-          run_install: false
 
-      # Create .env file from secret
+      - name: Install Dependencies
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm build-docker
+
       - name: Create .env file
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
@@ -43,12 +45,29 @@ jobs:
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and Push Container
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/app:${{ github.sha }} .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/app:${{ github.sha }}
 
       - name: Deploy to Cloud Run
-        uses: 'google-github-actions/deploy-cloudrun@v2'
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          source: ./
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/app:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
+
+      - name: Show Output
+        run: echo ${{ steps.deploy.outputs.url }}
