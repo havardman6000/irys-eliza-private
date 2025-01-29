@@ -32,22 +32,6 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Verify Authentication
-        run: gcloud auth list
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '23.3.0'
-
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 9.4.0
-
-      - name: Install Dependencies
-        run: |
-          pnpm install
-          pnpm build
-
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -55,7 +39,3 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           source: ./
-
-      - name: Show Output
-        if: success()
-        run: echo ${{ steps.deploy.outputs.url }}
