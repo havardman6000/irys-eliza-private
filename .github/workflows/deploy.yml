@@ -15,52 +15,19 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: 'read'
       id-token: 'write'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
+      - name: Google Auth
         id: auth
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          workload_identity_provider: 'projects/494569036734/locations/global/workloadIdentityPools/github-actions-pool-2/providers/github-provider'
           service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}'
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ env.PROJECT_ID }}
-
-      - name: Verify Authentication
-        run: |
-          gcloud auth list
-          gcloud config list project
-          echo "Current project is $(gcloud config get-value project)"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '23.3.0'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9.4.0
-          run_install: false
-
-      - name: Install Dependencies
-        run: |
-          pnpm install --no-frozen-lockfile
-          pnpm build-docker
-
-      - name: Create .env file
-        run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -69,10 +36,7 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           source: ./
-          env_vars: |
-            NODE_ENV=production
 
       - name: Show Output
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          echo "Service URL: ${{ steps.deploy.outputs.url }}"
+        if: success()
+        run: echo ${{ steps.deploy.outputs.url }}
