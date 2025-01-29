@@ -2,10 +2,14 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Install dependencies
-  - name: node:23.3.0
-    entrypoint: npm
-    args: ['install']
+  # Install Node and PNPM using an Alpine-based image
+  - name: 'node:23.3.0-alpine'
+    entrypoint: sh
+    args:
+      - '-c'
+      - |
+        npm install -g pnpm@9.4.0 && \
+        pnpm install --no-frozen-lockfile
 
   # Build the container
   - name: 'gcr.io/cloud-builders/docker'
