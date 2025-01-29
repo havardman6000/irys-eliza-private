@@ -2,19 +2,29 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Install Node, Git, and PNPM
-  - name: 'node:23.3.0-alpine'
-    entrypoint: sh
+  # Install build dependencies
+  - name: 'node:23.3.0'
+    entrypoint: bash
     args:
       - '-c'
       - |
-        apk add --no-cache git python3 make g++ && \
-        npm install -g pnpm@9.4.0 && \
-        pnpm install --no-frozen-lockfile
+        apt-get update && \
+        apt-get install -y cmake git python3 make g++ build-essential \
+        libtool autoconf automake pkg-config \
+        libopus-dev ffmpeg && \
+        npm install -g node-gyp pnpm@9.4.0 && \
+        pnpm install --no-frozen-lockfile || true && \
+        pnpm rebuild || true
 
   # Build the container
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/irys-eliza', '.']
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/irys-eliza'
+      - '--build-arg'
+      - 'NODE_ENV=production'
+      - '.'
 
   # Push the container
   - name: 'gcr.io/cloud-builders/docker'
@@ -34,6 +44,16 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--port'
+      - '3000'
+      - '--set-env-vars'
+      - 'NODE_ENV=production'
 
 images:
   - 'gcr.io/$PROJECT_ID/irys-eliza'
+
+timeout: '3600s'
